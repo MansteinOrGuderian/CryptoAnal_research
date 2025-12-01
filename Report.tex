@@ -395,7 +395,7 @@ RSA-OAEP (Optimal Asymmetric Encryption Padding) є стандартизован
 Схема Крамера-Шоупа є першою практичною схемою шифрування з відкритим ключем, для якої доведена IND-CCA2 стійкість 
 у стандартній моделі (без випадкового оракула)~\cite{CramerShoup1998}.
 
-\begin{claim}[Стійкість Cramer--Shoup~\cite{CramerShoup1998}]
+\begin{claim}[Стійкість Cramer--Shoup~\cite{CramerShoup2003}]
     ~\par Схема Cramer--Shoup є IND-CCA2 стійкою за припущення DDH (Decisional Diffie--Hellman assumption).
 \end{claim}
 
@@ -428,7 +428,7 @@ ML-KEM (Module-Lattice-based Key Encapsulation Mechanism), раніше відо
     Оскільки RSA є детермінованим алгоритмом, то зловмисник $\mathcal{A}$ вгадує правильно з ймовірністю 
     $\Adv^{\mathsf{IND-CPA}}_{\mathsf{RSA}, \mathcal{A}} = 1/2$.
     Окрім цього, Textbook RSA має властивість \emph{мультиплікативності}, що робить її вразливою до атак на 
-    перетворення (NM-CPA)~\cite{KatzLindell2020}.
+    перетворення (NM-CPA)~\cite{Boneh1999, Bleichenbacher1998}.
     \begin{equation*}
         \label{eq:rsa-multiplicative}
         \Enc(m_1) \cdot \Enc(m_2) = m_1^e \cdot m_2^e = (m_1 \cdot m_2)^e = \Enc(m_1 \cdot m_2) \Mod{n},
@@ -492,7 +492,7 @@ ML-KEM (Module-Lattice-based Key Encapsulation Mechanism), раніше відо
     \end{tblr}
     \begin{flushleft}
         \small
-        * --- за припущення складності RSA-задачі; ** --- за припущення DDH; *** --- у моделі випадкового оракула; $\star$ -- за припущення Module-LWE.\\
+        * --- за припущення складності RSA-задачі; ** --- за припущення DDH; *** --- у моделі випадкового оракула; $\star$ -- за припущення MLWE.\\
         $^\dagger$ --- для ElGamal доведено нестійкість до CCA-2; нестійкість до CCA-1 не має явної простої атаки, але й доказу стійкості немає.
     \end{flushleft}
 \end{table}
