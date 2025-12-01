@@ -1,9 +1,6 @@
 \chapter{\Large{Рівні стійкості криптографічних примітивів}}
 \label{chap:security-levels}
 
-\section{Вступ}
-\label{sec:1-intro}
-
 Сучасна криптографія базується на формальних визначеннях безпеки, які дозволяють математично доводити стійкість 
 криптографічних схем~\cite{KatzLindell2020}. Ці визначення формулюються у вигляді \emph{ігор безпеки} (security games) 
 між супротивником (adversary) та челенджером (challenger), де супротивник намагається порушити якусь властивість 
@@ -440,7 +437,7 @@ ML-KEM (Module-Lattice-based Key Encapsulation Mechanism), раніше відо
 Схема ElGamal є прикладом криптосистеми, яка задовольняє IND-CPA, але не задовольняє IND-CCA1~\cite{ElGamal1985}.
 
 \begin{claim}[Стійкість ElGamal~\cite{TsiounisYung1998}]
-    Схема ElGamal є IND-CPA стійкою за припущення DDH, але не є IND-CCA2 стійкою (і, як наслідок, не є 
+    ~\par Схема ElGamal є IND-CPA стійкою за припущення DDH, але не є IND-CCA2 стійкою (і, як наслідок, не є 
     IND-CCA1 стійкою).
 \end{claim}
 
@@ -459,24 +456,22 @@ ML-KEM (Module-Lattice-based Key Encapsulation Mechanism), раніше відо
 
 Ця вразливість пов'язана з malleability. Якщо $(c_1, c_2) = (g^r, m \cdot h^r)$ є шифротекстом для $m$, то для
 будь-якого відомого $\delta \in G$:
-\begin{equation}
+\begin{equation*}
     \label{eq:elgamal-malleability}
     (c_1, c_2 \cdot \delta) = (g^r, m \cdot \delta \cdot h^r) = \Enc(m \cdot \delta),
-\end{equation}
+\end{equation*}
 тобто можна отримати валідний шифротекст для $m \cdot \delta$ без знання $m$. Ця властивість є наслідком 
 мультиплікативності алгоритму ElGamal:
-\begin{equation}
+\begin{equation*}
     \label{eq:elgamal-homomorphic}
     \Enc(m_1) \cdot \Enc(m_2) = (g^{r_1+r_2}, m_1 \cdot m_2 \cdot h^{r_1+r_2}) = \Enc(m_1 \cdot m_2).
-\end{equation}
+\end{equation*}
 
 \subsection{Порівняльна таблиця перелічених алгоритмів}
 \label{subsec:1-9}
 
 \begin{table}[htbp]
     \centering
-    \caption{Порівняння рівнів стійкості криптопримітивів}
-    \label{tab:primitives-comparison}
     \begin{tblr}{
             colspec = {X[1.7,l] X[c] X[c] X[c] X[c] X[c] X[c]},
             row{1} = {font=\bfseries},
@@ -495,9 +490,11 @@ ML-KEM (Module-Lattice-based Key Encapsulation Mechanism), раніше відо
         * --- за припущення складності RSA-задачі; ** --- за припущення DDH; *** --- у моделі випадкового оракула; $\star$ -- за припущення MLWE.\\
         $^\dagger$ --- для ElGamal доведено нестійкість до CCA-2; нестійкість до CCA-1 не має явної простої атаки, але й доказу стійкості немає.
     \end{flushleft}
+    \caption{Порівняння рівнів стійкості криптопримітивів}
+    \label{tab:primitives-comparison}
 \end{table}
 
-Можна підбити коротенький підсумок:
+\noindent Можна підбити коротенький підсумок:
 \begin{enumerate}[noitemsep]
     \item Ієрархія рівнів стійкості: IND-CCA2 (еквівалентно NM-CCA2) є найвищим рівнем стійкості для 
         схем асиметричного шифрування та механізмів інкапсуляції ключів.
@@ -508,3 +505,350 @@ ML-KEM (Module-Lattice-based Key Encapsulation Mechanism), раніше відо
     \item Приклад Textbook RSA демонструє критичну важливість використання падінгу як такового для досягнення 
         навіть найбазовіших рівнів стійкості.
 \end{enumerate}
+
+\chapter{\Large{Рівні стійкості схем цифрового підпису}}
+\label{chap:signature-security}
+
+Схеми цифрового підпису(ЦП) є фундаментальним криптографічним примітивом, що забезпечує автентичність та цілісність 
+повідомлень~\cite{Goldreich2001, Goldreich2004}. На відміну від схем шифрування, де основною метою є конфіденційність, 
+для схем підпису ключовою властивістю є захист від підробок (unforgeability) -- неможливість створення валідного 
+підпису без знання секретного ключа~\cite{GoldwasserMicaliRivest1988}.
+
+Формально, схема цифрового підпису складається з трьох алгоритмів~\cite{KatzLindell2020}:
+\begin{itemize}[noitemsep]
+    \item[] $\Sigma = (\KeyGen, \Sign, \Verify)$:
+    \item $\KeyGen(1^\lambda) \to (\pk, \sk)$ --- генерація ключової пари;
+    \item $\Sign_{\sk}(m) \to \sigma$ --- створення підпису для повідомлення $m$;
+    \item $\Verify_{\pk}(m, \sigma) \to \{0, 1\}$ --- перевірка підпису.
+\end{itemize}
+
+\section{Моделі атак на схеми цифрового підпису}
+\label{sec:2-attack-models}
+
+Існують багато рівнів стійкості, розглянемо два основних -- універсальна непідробність (universal unforgeability, UU) 
+та екзистенційна непідробність (existential unforgeability, EU). Їх доцільно розглядати в контексті різних моделей 
+атак, наприклад: KOA (key-only attack), RMA (random message attack) та CPA (chosen message attack). Моделі атак 
+на схеми ЦП класифікуються за обсягом інформації, яка доступна супротивнику~\cite{KatzLindell2020, GoldwasserMicaliRivest1988}.
+
+\subsection{Атака лише з відкритим ключем (KOA)}
+\label{subsec:2-1}
+
+В моделі KOA (Key-Only Attack) супротивник має доступ лише до відкритого ключа $\pk$. Це найслабша модель атаки, 
+оскільки супротивник не має жодних прикладів валідних підписів~\cite{GoldwasserMicaliRivest1988}.
+
+\begin{definition}[KOA-супротивник]
+    \label{def:koa-adversary}
+    ~\par KOA це $\PPT$(Probabilistic Polynomial-Time)-алгоритм $\mathcal{A}$, який отримує на вхід лише відкритий 
+    ключ користувача $\pk$ та намагається створити валідний підпис.
+\end{definition}
+
+\subsection{Атака з випадково обраними повідомленнями (RMA)}
+\label{subsec:2-2}
+
+В моделі RMA (Random Plaintext Attack), також відомій як KPA (Known Plaintext Attack), супротивник перехоплює набір 
+пар $(m_i, \sigma_i)$, де повідомлення $m_{i}$ обрані випадковим чином~\cite{GoldwasserMicaliRivest1988}.
+
+\begin{definition}[RMA-супротивник]
+    \label{def:rma-adversary}
+    ~\par RMA-супротивником називається $\PPT$-алгоритм $\mathcal{A}$, який отримує:
+    \begin{itemize}[noitemsep]
+        \item відкритий ключ $\pk$;
+        \item набір пар $\{(m_1, \sigma_1), \ldots, (m_q, \sigma_q)\}$, де $m_i \xleftarrow{p} \mathcal{M}$ та 
+            $\sigma_i = \Sign_{\sk}(m_i)$.
+    \end{itemize}
+\end{definition}
+
+\subsection{Атака на основі вибраного plaintext (CPA)}
+\label{subsec:2-3}
+
+Модель CPA (Chosen Plaintext Attack) є найсильнішою стандартною моделлю атаки. Супротивник має адаптивний (ґрунтуючись 
+на попередньо отриманих результатах) оракульний доступ до функції підпису $\Sign_{\sk}(\cdot)$ і може запитувати 
+підписи для довільних повідомлень за власним вибором~\cite{GoldwasserMicaliRivest1988}.
+
+\begin{definition}[CPA-супротивник]
+    \label{def:cma-adversary}
+    ~\par CPA-супротивником називається такий поліноміальний алгоритм $\mathcal{A}^{\Sign_{\sk}(\cdot)}$, який:
+    \begin{itemize}[noitemsep]
+        \item отримуючи відкритий ключ $\pk$;
+        \item і маючи адаптивний оракульний доступ до $\Sign_{\sk}(\cdot)$;
+        \item може робити поліноміальну кількість запитів до оракула для витягання деталей про $\sk$.
+    \end{itemize}
+\end{definition}
+
+Всі перелічені атаки можна ґарненько звести до таблиці~\ref{tab:signature-attack-models}.
+
+\begin{table}[htbp]
+    \centering
+    \begin{tblr}{
+            colspec = {X[1.2,l] X[c] X[1.1, c] X[c]},
+            row{1} = {font=\bfseries},
+            hlines,
+            vlines,
+        }
+        Преференція          & KOA       & RMA                   & CPA                \\
+        Sign examples        & Ні        & Так (випадкові $m_i$) & Так (обрані $m_i$) \\
+        Адаптивність запитів & Ні        & Ні                    & Так                \\
+        Загроза              & Найслабша & Середня               & Найсильніша        \\
+    \end{tblr}
+    \caption{Порівняння моделей атак на схему цифрового підпису}
+    \label{tab:signature-attack-models}
+\end{table}
+
+\subsection*{Ієрархія моделей атак}
+\label{subsec:2-4}
+
+Між моделями атак існує певна ієрархія залежно від їх сили~\cite{GoldwasserMicaliRivest1988}:
+\begin{equation*}
+    \label{eq:attack-hierarchy}
+    \mathsf{CPA} \succ \mathsf{RMA} \succ \mathsf{KOA},
+\end{equation*}
+де під позначенням $A \succ B$ розуміємо, що модель $A$ надає супротивнику більше можливостей, ніж модель $B$. 
+І відповідно стійкість до більш сильної атаки (позначимо її $X$) включає в себе і стійкість до слабшої:
+
+\begin{equation*}
+    \label{eq:attack-implications-sig}
+    X\text{-}\mathsf{CPA} \Rightarrow X\text{-}\mathsf{RMA} \Rightarrow X\text{-}\mathsf{KOA}
+\end{equation*}
+
+\section{Рівні непідробності}
+\label{sec:2-unforgeability}
+
+Рівні непідробності розрізняють залежно від того, що саме вважається успішною підробкою. Розглянемо три основні 
+види.
+
+\subsection{Універсальна непідробність (Universal Unforgeability)}
+\label{subsec:2-5}
+
+Універсальна непідробність (UU) вимагає, щоб супротивник не міг підробити підпис для \emph{заданого} повідомлення 
+$m^{*}$, яке обирається челенджером~\cite{GoldwasserMicaliRivest1988}.
+
+\begin{definition}[UU-ATK стійкість]
+    \label{def:uu-atk}
+    ~\par Схема підпису $\Sigma = (\KeyGen, \Sign, \Verify)$ називається UU-ATK стійкою, де \\ 
+    $\mathsf{ATK} \in \{\mathsf{KOA}, \mathsf{RMA}, \mathsf{CPA}\}$, якщо для будь-якого $\PPT$-супротивника $\mathcal{A}$:
+    \begin{equation*}
+        \label{eq:uu-atk}
+        \Adv^{\mathsf{UU-ATK}}_{\Sigma, \mathcal{A}}(\lambda) = \Pr\left[\Verify_{\pk}(m^*, \sigma^*) = 1 : \substack{(\pk, \sk) \leftarrow \KeyGen(1^\lambda) \\ m^* \xleftarrow{p} \mathcal{M} \\ \sigma^* \leftarrow \mathcal{A}^{\mathcal{O}}(\pk, m^*)}\right] \leq \negl(\lambda),
+    \end{equation*}
+    де $\mathcal{O}$ -- оракул, визначений моделлю ATK.
+
+    P.S. В моделі CPA супротивник не може запитувати $\Sign_{\sk}(m^*)$.
+\end{definition}
+
+Алгоритм "гри"{} UU-CPA наведемо в алгоритмі~\ref{alg:uu-cma}.
+
+\begin{algorithm}[htbp]
+    \caption{Game UU-CPA для схеми цифрового підпису}
+    \label{alg:uu-cma}
+    \begin{algorithmic}[1]
+        \Require Параметр безпеки $1^\lambda$
+        \Ensure Біт $b \in \{0, 1\}$
+        \State $(\pk, \sk) \leftarrow \KeyGen(1^\lambda)$
+        \State $m^* \xleftarrow{p} \mathcal{M}$ \Comment{Челенджер обирає цільове повідомлення}
+        \State $Q \leftarrow \varnothing$ \Comment{Множина запитаних повідомлень}
+        \State $\sigma^* \leftarrow \mathcal{A}^{\Sign_{\sk}(\cdot)}(\pk, m^*)$
+        \Comment{$\mathcal{A}$ не може запитувати $\Sign_{\sk}(m^*)$}
+        \If{$\Verify_{\pk}(m^*, \sigma^*) = 1$ \textbf{and} $m^* \notin Q$}
+        \State \Return $1$ \Comment{Успішна підробка підпису}
+        \Else
+        \State \Return $0$
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection{Екзистенційна непідробність (Existential Unforgeability)}
+\label{subsec:2-6}
+
+Екзистенційна несфальсифікованість (EU) є більш сильним поняттям. Вона вимагає, щоб супротивник не міг підробити 
+підпис для \emph{будь-якого} повідомлення, яке підписант раніше не підписував~\cite{Chia2021}. Це є "золотим 
+стандартом"{} безпеки для цифрових підписів.
+\begin{definition}[EU-ATK стійкість]
+    \label{def:eu-atk}
+    ~\par Схема підпису $\Sigma$ є EU-ATK стійкою, якщо для будь-якого $\PPT$-algorithm $\mathcal{A}$:
+    \begin{equation*}
+        \label{eq:eu-atk}
+        \Adv^{\mathsf{EU-ATK}}_{\Sigma, \mathcal{A}}(\lambda) = \Pr\left[\substack{\Verify_{\pk}(m^*, \sigma^*) = 1 \\ \land\, m^* \notin Q} : \substack{(\pk, \sk) \leftarrow \KeyGen(1^\lambda) \\ (m^*, \sigma^*) \leftarrow \mathcal{A}^{\mathcal{O}}(\pk)}\right] \leq \negl(\lambda),
+    \end{equation*}
+    де $Q$ -- множина повідомлень, для яких атакуючий $\mathcal{A}$ отримав підписи.
+\end{definition}
+
+EU-CPA також доволі часто позначають в літературі як EUF-CMA (Existential Unforgeability under Chosen Message 
+Attack)~\cite{KatzLindell2020}.
+
+\newpage %FORCED...
+\begin{algorithm}[htbp]
+    \caption{Game EU-CPA (EUF-CPA) для схеми цифрового підпису}
+    \label{alg:eu-cma}
+    \begin{algorithmic}[1]
+        \Require Параметр безпеки $1^\lambda$, супротивник $\mathcal{A}$
+        \Ensure Біт $b \in \{0, 1\}$
+        \State $(\pk, \sk) \leftarrow \KeyGen(1^\lambda)$
+        \State $Q \leftarrow \varnothing$
+        \State $(m^*, \sigma^*) \leftarrow \mathcal{A}^{\Sign_{\sk}(\cdot)}(\pk)$
+        \Comment{$\mathcal{A}$ сам обирає $m^*$}
+        \If{$\Verify_{\pk}(m^*, \sigma^*) = 1$ \textbf{and} $m^* \notin Q$}
+        \State \Return $1$ \Comment{Успішна підробка}
+        \Else
+        \State \Return $0$
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection{Сильна екзистенційна непідробність (sEU)}
+\label{subsec:2-7}
+
+Виділяють також ще одне поняття -- \emph{сильна екзистенційна непідробність} (Strong Unforgeability under Chosen 
+Message Attack, sEU a.k.a. SUF), яке додатково запобігає підробці зловмисником дійсного підпису для будь-якого 
+нового повідомлення, включаючи те, яке вже було підписано законним підписувачем~\cite{AbdallaAnBellareNamprempre2002}.
+
+\begin{definition}[sEU-CPA стійкість]
+    \label{def:seu-cma}
+    ~\par Схема $\Sigma$ є sEU-CPA стійкою, якщо супротивник не може створити таку пару $(m^*, \sigma^*)$, що 
+    $\Verify_{\pk}(m^*, \sigma^*) = 1 \land (m^*, \sigma^*) \notin Q$, де $Q$ -- множина всіх пар (повідомлення, 
+    підпис), отриманих від оракула.
+\end{definition}
+
+\subsection*{Зв'язок між рівнями непідробності}
+\label{subsec:2-8}
+
+Для фіксованого типу атаки ATK~\cite{GoldwasserMicaliRivest1988, KatzLindell2020}:
+\begin{equation*}
+    \label{eq:unforgeability-implications}
+    \mathsf{sEU\text{-}ATK} \Rightarrow \mathsf{EU\text{-}ATK} \Rightarrow \mathsf{UU\text{-}ATK}.
+\end{equation*}
+\noindent Ці імплікації є строгими -- зворотні імплікації не виконуються в загальному випадку.
+
+\section{Ієрархія рівнів стійкості}
+\label{sec:2-hierarchy}
+
+Найвищим стандартним рівнем стійкості для схем цифрового підпису вважають sEU-CPA (SUF-CPA), а практичним "золотим 
+стандартом"{} є EU-CPA (EUF-CPA)~\cite{KatzLindell2020}.
+
+Повна ієрархія рівнів стійкості для схем підпису зображена на рисунку~\ref{fig:signature-hierarchy}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.2cm and 2.2cm,
+        box/.style={rectangle, draw, minimum width=1.8cm, minimum height=0.7cm, align=center, font=\small},
+        arrow/.style={-{Stealth[length=2mm]}, thick}
+        ]
+        % sEU рівень (верхній)
+        \node[box] (seucma) {sEU-CPA};
+        \node[box, right=of seucma] (seurma) {sEU-RMA};
+        \node[box, right=of seurma] (seukoa) {sEU-KOA};
+
+        % EU рівень (середній)
+        \node[box, below=of seucma] (eucma) {EU-CPA};
+        \node[box, right=of eucma] (eurma) {EU-RMA};
+        \node[box, right=of eurma] (eukoa) {EU-KOA};
+
+        % UU рівень (нижній)
+        \node[box, below=of eucma] (uucma) {UU-CPA};
+        \node[box, right=of uucma] (uurma) {UU-RMA};
+        \node[box, right=of uurma] (uukoa) {UU-KOA};
+
+        % Вертикальні стрілки (sEU -> EU -> UU)
+        \draw[arrow] (seucma) -- (eucma);
+        \draw[arrow] (seurma) -- (eurma);
+        \draw[arrow] (seukoa) -- (eukoa);
+        \draw[arrow] (eucma) -- (uucma);
+        \draw[arrow] (eurma) -- (uurma);
+        \draw[arrow] (eukoa) -- (uukoa);
+
+        % Горизонтальні стрілки (CPA -> RMA -> KOA)
+        \draw[arrow] (seucma) -- (seurma);
+        \draw[arrow] (seurma) -- (seukoa);
+        \draw[arrow] (eucma) -- (eurma);
+        \draw[arrow] (eurma) -- (eukoa);
+        \draw[arrow] (uucma) -- (uurma);
+        \draw[arrow] (uurma) -- (uukoa);
+
+    \end{tikzpicture}
+    \caption{Ієрархія рівнів стійкості схем цифрового підпису. Стрілки позначають імплікації (від сильнішого до слабшого).}
+    \label{fig:signature-hierarchy}
+\end{figure}
+
+\newpage % FORCED
+\section{Приклади криптопримітивів}
+\label{sec:2-examples}
+
+\subsection{Схеми з доведеною EU-CPA стійкістю}
+\label{subsec:2-11}
+
+\subsubsection*{RSA-PSS (EU-CPA)}
+
+RSA-PSS (Probabilistic Signature Scheme) є стандартизованою схемою підпису, розробленою Белларе та Рогавеєм~\cite{BellareRogaway1996}. 
+На відміну від детермінованого RSA-підпису, PSS використовує рандомізацію. Алгоритм підпису RSA-PSS є наступним:
+
+\begin{algorithm}[htbp]
+    \caption{RSA-PSS підпис}
+    \label{alg:rsa-pss}
+    \begin{algorithmic}[1]
+        \Require Повідомлення $m$, секретний ключ $d$, модуль $n$, геш-функції $H, G$
+        \Ensure Підпис $\sigma$
+        \State $r \xleftarrow{p} \{0,1\}^{k_0}$ \Comment{Випадкове значення рандомізації}
+        \State $w \leftarrow H(m \| r)$
+        \State $r^* \leftarrow G(w) \oplus r$
+        \State $y \leftarrow 0 \| w \| r^*$
+        \State $\sigma \leftarrow y^d \mod n$
+        \State \Return $\sigma$
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{claim}[Стійкість RSA-PSS~\cite{BellareRogaway1996}]
+    \label{cl:rsa-pss}
+    ~\par RSA-PSS є EU-CPA стійкою в моделі випадкового оракула (Random Oracle Model (ROM)) за припущення складності 
+    RSA-задачі.
+\end{claim}
+
+\subsubsection*{Schnorr (EU-CPA)}
+
+Схема Шнорра є схемою підпису на основі розв'язанні задачі дискретного логарифма~\cite{Schnorr1991}. Вона є основою 
+для багатьох сучасних схем підпису, наприклад, EdDSA.
+
+\begin{claim}[Стійкість Schnorr~\cite{PointchevalStern1996}]
+    \label{cl:schnorr}
+    ~\par Схема Schnorr є EU-CPA стійкою в моделі випадкового оракула за припущення складності задачі 
+    дискретного логарифма (DL).
+\end{claim}
+
+\noindent Схема виглядає наступним чином:
+\begin{algorithm}[htbp]
+    \caption{Схема підпису Schnorr}
+    \label{alg:schnorr}
+    \begin{algorithmic}[1]
+        \Statex \textbf{Генерація ключів} $\KeyGen(1^\lambda)$:
+        \State $x \xleftarrow{\$} \mathbb{Z}_q$
+        \State \Return $(\pk = g^x,\; \sk = x)$
+        \Statex
+        \Statex \textbf{Підпис} $\Sign_{\sk}(m)$:
+        \State $k \xleftarrow{\$} \mathbb{Z}_q$
+        \State $r \leftarrow g^k$
+        \State $e \leftarrow H(r \| m)$
+        \State $s \leftarrow k + x \cdot e \mod q$
+        \State \Return $\sigma = (e, s)$
+        \Statex
+        \Statex \textbf{Верифікація} $\Verify_{\pk}(m, \sigma = (e, s))$:
+        \State $r' \leftarrow g^s \cdot \pk^{-e}$
+        \State \Return $\bigl(H(r' \| m) \overset{?}{=} e\bigr)$
+    \end{algorithmic}
+\end{algorithm}
+
+\subsubsection*{ECDSA (EU-CPA)}
+
+Згадана мною раніше ECDSA (Elliptic Curve Digital Signature Algorithm) є широко використовуваною схемою підпису, 
+стандартизованою у вже застарілому FIPS 186-4~\cite{FIPS186-4}. (Буквально на початку 2024 року вийшло оновлення)
+
+\begin{claim}[Стійкість ECDSA~\cite{BrownECDSA2005}]
+    \label{cl:ecdsa}
+    ~\par ECDSA є EU-CPA стійкою в моделі generic group за припущення складності ECDLP (Elliptic Curve Discrete 
+    Logarithm Problem).
+\end{claim}
+
+\subsubsection*{ML-DSA (Dilithium) -- постквантовий підпис}
+
+ML-DSA (Module-Lattice-based Digital Signature Algorithm), раніше відомий як \\ 
+CRYSTALS-Dilithium, є стандартизованим NIST постквантовим підписом (той самий новий, 24 року стандарт)~\cite{NIST-FIPS-204}.
+
+Він є EU-CPA стійким у припущені складності задач MLWE (learning with errors) та MSIS (short integer solution).
