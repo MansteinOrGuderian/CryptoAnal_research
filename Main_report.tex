@@ -1,19 +1,33 @@
 \documentclass{report}
 \input{packages.tex}
 
+\addbibresource{references.bib}
+
 \begin{document}
 \input{title.tex}
 
-\renewcommand{\chaptername}{Завдання \No}
 \makeatletter
+\renewcommand{\tableofcontents}{
+  \clearpage
+  \thispagestyle{empty}
+  \begin{center}
+          \bfseries\Large\MakeUppercase{Зміст}
+  \end{center}
+
+  \addvspace{42pt}
+  \@starttoc{toc}
+}
 \renewcommand{\@pnumwidth}{2em}
 \renewcommand{\@tocrmarg}{3em}
 \makeatother
 
+\tableofcontents
 \cleardoublepage
 \pagenumbering{arabic}
 \setcounter{page}{1}
 \newpage
+
+\fancypagestyle{plain} % only for pages with new chapters.  DO NOT DELETE LINE BELOW!
 
 % Clear the header and footer
 \fancyhead{}
@@ -28,19 +42,30 @@
 }
 \pagestyle{fancy}
 
-
 \theoremstyle{plain}
-\newtheorem{definition}{Означення}%[section]
-\newtheorem{theorem}{Теорема}[chapter]
-\newtheorem{claim}{Твердження}[chapter]
+\newtheorem{definition}{Означення}[section]
+\newtheorem{theorem}{Теорема}[section]
+\newtheorem{claim}{Твердження}[section]
+\newtheorem{lemma}{Лема}[section]
 
 \theoremstyle{definition}
-\newtheorem*{remark}{Зауваження:}
 \newtheorem*{example}{Приклад}
-\newtheorem{lemma}{Лема}[chapter]
+\newtheorem{remark}{Зауваження:}[section]
 
 \renewcommand*{\proofname}{Доведення:}
 \newcommand{\Mod}[1]{\ (\mathrm{mod}\ #1)}
+\newcommand{\Adv}{\mathsf{Adv}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\Dec}{\mathsf{Dec}}
+\newcommand{\KeyGen}{\mathsf{KeyGen}}
+\newcommand{\PKE}{\mathsf{PKE}}
+\newcommand{\pk}{\mathsf{pk}}
+\newcommand{\sk}{\mathsf{sk}}
+\newcommand{\negl}{\mathsf{negl}}
+\newcommand{\poly}{\mathsf{poly}}
+\newcommand{\PPT}{\mathsf{PPT}}
+\newcommand{\Encaps}{\mathsf{Encaps}}
+\newcommand{\Decaps}{\mathsf{Decaps}}
 
 \NewDocumentCommand{\MakeWaveComment}{m}{
   \ifmmode % if math mode, make indent before bigger
@@ -65,5 +90,10 @@
 }
 
 \input{Report.tex}
+
+\newpage
+\selectlanguage{english}
+\printbibliography[title={Список використаних джерел}]
+
 
 \end{document}

@@ -1,1 +1,510 @@
+\chapter{\Large{Рівні стійкості криптографічних примітивів}}
+\label{chap:security-levels}
 
+\section{Вступ}
+\label{sec:1-intro}
+
+Сучасна криптографія базується на формальних визначеннях безпеки, які дозволяють математично доводити стійкість 
+криптографічних схем~\cite{KatzLindell2020}. Ці визначення формулюються у вигляді \emph{ігор безпеки} (security games) 
+між супротивником (adversary) та челенджером (challenger), де супротивник намагається порушити якусь властивість 
+криптосистеми~\cite{Goldreich2001}. В першому розділі розглянемо основні рівні стійкості криптографічних примітивів: 
+односторонність (one-wayness), нерозрізненість (indistinguishability), семантична стійкість (semantic security) та 
+стійкість до перетворень (non-malleability). Ці поняття аналізуються в контексті різних моделей атак, зокрема атак 
+на основі обраного відкритого тексту (CPA), неадаптивних атак на основі обраного шифротексту (CCA-1) та адаптивних 
+атак на основі обраного шифротексту (CCA-2)~\cite{BellareDesaiPointcheval1998}.
+
+\section{Моделі атак}
+\label{sec:1-attack-models}
+
+Перед переходом безпосередньо до рівнів стійкості необхідно визначити моделі атак, які характеризують спектр 
+можливостей супротивника. Нехай $\PKE = (\KeyGen, \Enc, \Dec)$ -- асиметрична схема шифрування (Public Key Encryption) 
+з простором повідомлень $\mathcal{M}$ та простором шифротекстів $\mathcal{C}$~\cite{KatzLindell2020}.
+
+\subsection{Chosen Plaintext Attack (CPA)}
+\label{subsec:1-1}
+
+В моделі атаки на основі обраного відкритого тексту супротивник має доступ до відкритого ключа $\pk$ і може 
+обчислювати шифротексти для довільних повідомлень за власним вибором. Формально, супротивник $\mathcal{A}$ має 
+оракульний доступ до функції шифрування $\Enc_{\pk}(\cdot)$ (тобто має можливість надсилати запити до 
+функції/алгоритму оракула і отримувати коректні відповіді без знання внутрішнього ключа або його механізму 
+роботи)~\cite{Goldwasser1984}.
+
+\begin{definition}[CPA-супротивник~\cite{MenezesOorschotVanstone1996}]
+    \label{def:cpa-adversary}
+    ~\par CPA-супротивником називається ймовірнісний поліноміальний алгоритм $\mathcal{A}$, який отримує на вхід 
+    відкритий ключ $\pk$ та має доступ до оракула шифрування $\Enc_{\pk}(\cdot)$.
+\end{definition}
+
+Для детермінованих схем шифрування з відкритим ключем доступ до оракула шифрування не надає додаткової переваги, 
+оскільки супротивник може самостійно обчислити $\Enc_{\pk}(m)$ для будь-якого $m$~\cite{KatzLindell2020}.
+
+\subsection{Non-adaptive Chosen Ciphertext attack (CCA-1)}
+\label{subsec:1-2}
+
+В моделі CCA-1 (також відомій як "lunchtime attack"{} або Naor-Yung attack), супротивник додатково має доступ до 
+оракула дешифрування $\Dec_{\sk}(\cdot)$, але лише \emph{до} отримання challenge-шифротексту~\cite{NaorYung1990}.
+
+\begin{definition}[CCA-1 супротивник~\cite{MenezesOorschotVanstone1996}]
+    \label{def:cca1-adversary}
+    ~\par CCA-1 супротивником називається ймовірнісний поліноміальний алгоритм 
+    $\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)$, де:
+    \begin{itemize}[noitemsep]
+        \item $\mathcal{A}_1$ отримує $\pk$ та має доступ до $\Dec_{\sk}(\cdot)$, генерує стан $\mathsf{state}$;
+        \item $\mathcal{A}_2$ отримує challenge та $\mathsf{state}$, але \emph{не має} доступу до $\Dec_{\sk}(\cdot)$.
+    \end{itemize}
+\end{definition}
+
+\subsection{Adaptive Chosen Ciphertext attack (CCA-2)}
+\label{subsec:1-3}
+
+Модель CCA-2, запропонована Рекоффом і Саймоном, є "найсильнішою"(найгіршою з точки зору захисту){} стандартною 
+моделлю атаки~\cite{RackoffSimon1991}. Супротивник має доступ до оракула дешифрування як до, так і після отримання 
+challenge-шифротексту, з єдиним обмеженням -- він не може запитувати дешифрування самого challenge-шифротексту.
+
+\begin{definition}[CCA-2 супротивник~\cite{MenezesOorschotVanstone1996}]
+    \label{def:cca2-adversary}
+    ~\par CCA-2 супротивником називається ймовірнісний поліноміальний алгоритм 
+    $\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)$, де обидві фази мають доступ до $\Dec_{\sk}(\cdot)$, 
+    з обмеженням, що $\mathcal{A}_2$ не може запитувати дешифрування challenge-шифротексту $c^*$.
+\end{definition}
+
+Згрупуємо ці атаки у порівняльну таблицю~\ref{tab:attack-models}.
+
+\begin{table}[htbp]
+    \centering
+    \begin{tblr}{
+        colspec = {X[l] X[c] X[c] X[c]},
+        row{1} = {font=\bfseries},
+        hlines,
+        vlines,
+        }
+        Привілегії                                 & CPA & CCA-1 & CCA-2            \\
+        Доступ до $\pk$                            & Так & Так   & Так              \\
+        Оракул $\Enc_{\pk}(\cdot)$                 & Так & Так   & Так              \\
+        Оракул $\Dec_{\sk}(\cdot)$ до challenge    & Ні  & Так   & Так              \\
+        Оракул $\Dec_{\sk}(\cdot)$ після challenge & Ні  & Ні    & Так (крім $c^*$) \\
+    \end{tblr}
+    \caption{Порівняння моделей атак за можливостями супротивника}
+    \label{tab:attack-models}
+\end{table}
+
+\section{Односторонність (One-Wayness)}
+\label{sec:1-onewayness}
+
+Односторонність є \emph{найслабшим} рівнем стійкості для схем шифрування. Вона вимагає, щоб супротивник не міг 
+повністю відновити відкритий текст із шифротексту~\cite{BellareDesaiPointcheval1998}.
+
+\begin{definition}[OW-CPA стійкість]
+    \label{def:ow-cpa}
+    ~\par Нехай $\PKE = (\KeyGen, \Enc, \Dec)$ -- асиметрична схема шифрування, простір можливих атак: 
+    $\mathsf{CPA} \in \{\mathsf{CPA}, \mathsf{CCA1}, \mathsf{CCA2}\}$. Схема $\PKE$ називається OW-CPA стійкою, 
+    якщо для будь-якого $\PPT$(Probabilistic Polynomial-Time)-супротивника $\mathcal{A}$ типу CPA:
+    \begin{equation*}
+        \label{eq:ow-cpa}
+        \Adv^{\mathsf{OW-CPA}}_{\PKE, \mathcal{A}}(\lambda) = \Pr\left[\mathcal{A}(\pk, c^*) = m : \substack{(\pk, \sk) \leftarrow \KeyGen(1^\lambda) \\ m \xleftarrow{p} \mathcal{M} \\ c^* \leftarrow \Enc_{\pk}(m)}\right] \leq \negl(\lambda),
+    \end{equation*}
+    де $\lambda$ -- параметр безпеки.
+\end{definition}
+
+\noindent Security game для OW-CPA наведена в алгоритмі~\ref{alg:ow-cpa}.
+
+\begin{algorithm}[htbp]
+    \caption{Game OW-CPA для асиметричного шифрування}
+    \label{alg:ow-cpa}
+    \begin{algorithmic}[1]
+        \Require Параметр безпеки $1^\lambda$, супротивник $\mathcal{A}$
+        \Ensure Біт $b \in \{0, 1\}$
+        \State $(\pk, \sk) \leftarrow \KeyGen(1^\lambda)$
+        \State $m \xleftarrow{p} \mathcal{M}$
+        \State $c^* \leftarrow \Enc_{\pk}(m)$
+        \State $m' \leftarrow \mathcal{A}(\pk, c^*)$
+        \If{$m' = m$}
+        \State \Return $1$ \Comment{guess successful}
+        \Else
+        \State \Return $0$ \Comment{guess failed}
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+Механізм інкапсуляції ключів (Key Encapsulation Mechanism, KEM) є криптографічним примітивом, що складається з 
+трьох алгоритмів $\mathsf{KEM} = (\KeyGen, \Encaps, \Decaps)$~\cite{Shoup2001}.
+
+\begin{definition}[OW-CPA стійкість KEM]
+    \label{def:ow-cpa-kem}
+    ~\par KEM $= (\KeyGen, \Encaps, \Decaps)$ називається OW-CPA стійким, якщо для будь-якого $\PPT$-супротивника 
+    $\mathcal{A}$:
+    \begin{equation*}
+        \label{eq:ow-cpa-kem}
+        \Adv^{\mathsf{OW-CPA}}_{\mathsf{KEM}, \mathcal{A}}(\lambda) = \Pr\left[\mathcal{A}(\pk, c^*) = K : \substack{(\pk, \sk) \leftarrow \KeyGen(1^\lambda) \\ (K, c^*) \leftarrow \Encaps(\pk)}\right] \leq \negl(\lambda).
+    \end{equation*}
+\end{definition}
+
+\section{Нерозрізненість (Indistinguishability)}
+\label{sec:1-indistinguishability}
+
+Нерозрізненість є значно сильнішим поняттям безпеки, ніж односторонність. Вона вимагає, щоб супротивник не міг 
+отримати \emph{жодної} інформації про відкритий текст із шифротексту~\cite{Goldwasser1984}.
+
+\begin{definition}[IND-CPA стійкість]
+    \label{def:ind-cpa}
+    ~\par Схема шифрування $\PKE = (\KeyGen, \Enc, \Dec)$ називається IND-CPA стійкою (Indist\-inguishability 
+    under Chosen Plaintext Attack), $\mathsf{CPA} \in \{\mathsf{CPA}, \mathsf{CCA1}, \mathsf{CCA2}\}$, якщо для 
+    будь-якого $\PPT$-супротивника $\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)$:
+    \begin{equation*}
+        \label{eq:ind-cpa}
+        \Adv^{\mathsf{IND-CPA}}_{\PKE, \mathcal{A}}(\lambda) = \left|\Pr[b' = b] - \frac{1}{2}\right| \leq \negl(\lambda),
+    \end{equation*}
+    де "Гра"{} визначена в алгоритмі~\ref{alg:ind-cca2}.
+\end{definition}
+
+\begin{algorithm}[htbp]
+    \caption{Game IND-CCA2 для асиметричного шифрування}
+    \label{alg:ind-cca2}
+    \begin{algorithmic}[1]
+        \Require Параметр безпеки $1^{\lambda}$, супротивник $\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)$
+        \Ensure Біт $b' \in \{0, 1\}$
+        \State $(\pk, \sk) \leftarrow \KeyGen(1^\lambda)$
+        \State $(m_0, m_1, \mathsf{state}) \leftarrow \mathcal{A}_1^{\Dec_{\sk}(\cdot)}(\pk)$ \Comment{$|m_0| = |m_1|$}
+        \State $b \xleftarrow{p} \{0, 1\}$
+        \State $c^* \leftarrow \Enc_{\pk}(m_b)$
+        \State $b' \leftarrow \mathcal{A}_2^{\Dec_{\sk}(\cdot)}(c^*, \mathsf{state})$ \Comment{$\mathcal{A}_2$ 
+            не може запитувати $\Dec_{\sk}(c^*)$}
+        \State \Return $b'$
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{definition}[IND-CPA стійкість KEM]
+    \label{def:ind-cpa-kem}
+    ~\par KEM називається IND-CPA стійким, якщо для будь-якого $\PPT$-супротивника $\mathcal{A}$:
+    \begin{equation*}
+        \label{eq:ind-cpa-kem}
+        \Adv^{\mathsf{IND-CPA}}_{\mathsf{KEM}, \mathcal{A}}(\lambda) = \left|\Pr[\mathcal{A}(\pk, c^*, K_b) = b] - \frac{1}{2}\right| \leq \negl(\lambda),
+    \end{equation*}
+    де $K_0 = K$ -- справжній ключ з $(K, c^*) \leftarrow \Encaps(\pk)$, а $K_1 \xleftarrow{p} \mathcal{K}$ -- 
+    випадковий ключ.
+\end{definition}
+
+\section{Семантична стійкість (Semantic Security)}
+\label{sec:1-semantic-security}
+
+Семантична стійкість, введена Голдвассер та Мікалі~\cite{Goldwasser1984}, є симуляційним означенням безпеки. 
+Інтуїтивно: схема є семантично стійкою, якщо будь-яку інформацію про відкритий текст, яку можна ефективно 
+обчислити з шифротексту, можна також ефективно обчислити без шифротексту.
+
+\begin{definition}[SS-CPA стійкість]
+    \label{def:ss-cpa}
+    ~\par Схема шифрування $\PKE$ називається SS-CPA стійкою, якщо для будь-якого $\PPT$-супротивника $\mathcal{A}$ 
+    існує $\PPT$-симулятор $\mathcal{S}$ такий, що для будь-якої функції $f: \mathcal{M} \to \{0,1\}^*$ та розподілу 
+    $\mathcal{D}$ на $\mathcal{M}$:
+    \begin{equation*}
+        \label{eq:ss-cpa}
+        \left|\Pr[\mathcal{A}(\pk, \Enc_{\pk}(m)) = f(m)] - \Pr[\mathcal{S}(\pk, 1^{|m|}) = f(m)]\right| \leq \negl(\lambda),
+    \end{equation*}
+    де $m \leftarrow \mathcal{D}$.
+\end{definition}
+
+\begin{claim}[Еквівалентність IND та SS~\cite{Goldwasser1984, Micali1984}]
+    \label{cl:ind-ss-equivalence}
+    ~\par Для моделі Chosen Plaintext Attack (CPA) маємо: $\mathsf{IND\text{-}CPA} \Leftrightarrow \mathsf{SS\text{-}CPA}$.
+\end{claim}
+
+\noindent Цей результат був розширений Белларе та ін.~\cite{BellareDesaiPointcheval1998} на моделі CCA-1 та CCA-2:
+\begin{equation*}
+    \label{eq:ind-ss-equivalence-cca}
+    \mathsf{IND\text{-}CCA1} \Leftrightarrow \mathsf{SS\text{-}CCA1}, \quad \mathsf{IND\text{-}CCA2} \Leftrightarrow \mathsf{SS\text{-}CCA2}.
+\end{equation*}
+
+\section{Стійкість до перетворень (Non-Malleability)}
+\label{sec:1-non-malleability}
+
+Стійкість до перетворень (non-malleability) є напрямком захисту від атак, де супротивник намагається 
+створити шифротекст, пов'язаний із challenge-шифротекстом~\cite{DolenvDworkNaor1991}.
+
+\begin{definition}[NM-CPA стійкість]
+    \label{def:nm-cpa}
+    ~\par Схема $\PKE$ називається NM-CPA стійкою, якщо для будь-якого $\PPT$-супротивника $\mathcal{A}$, для 
+    будь-якого відношення $R$ та розподілу $\mathcal{D}$:
+    \begin{equation*}
+        \label{eq:nm-cpa}
+        \Pr\left[\substack{R(m, \mathbf{m}') = 1 \land\, c^* \notin \mathbf{c}'} : 
+        \substack{(\pk, \sk) \leftarrow \KeyGen(1^\lambda) \\ m \leftarrow \mathcal{D} \\ c^* \leftarrow \Enc_{\pk}(m) \\ \mathbf{c}' \leftarrow \mathcal{A}(\pk, c^*) \\ \mathbf{m}' \leftarrow \Dec_{\sk}(\mathbf{c}')}\right] 
+        \approx \Pr\left[R(m, \mathbf{m}') = 1 : \substack{m \leftarrow \mathcal{D} \\ \mathbf{m}' \leftarrow \mathcal{S}(\pk, 1^{|m|})}\right].
+    \end{equation*}
+\end{definition}
+
+В моєму розумінні означення~\cite{BellareDesaiPointcheval1998}, схема є NM-стійкою, якщо маючи шифротекст $c^*$, 
+супротивник не може створити такий вектор шифротекстів $\mathbf{c}'$, дешифрування яких утворює вектор 
+$\mathbf{m}'$, що є лінійною комбінацією оригінального повідомлення $m$.
+
+\section{Порівняльний аналіз означень}
+\label{sec:1-compare-properties}
+
+\begin{table}[htbp]
+    \centering
+    \begin{tblr}{
+            colspec = {X[1.5,l] X[2.5,l] X[1.5,l]},
+            row{1} = {font=\bfseries},
+            hlines,
+            vlines,
+        }
+        Означення                     & На що спрямований захист             & Тип означення    \\
+        OW (односторонність)          & Повне відновлення повідомлення       & Обчислювальне    \\
+        IND (нерозрізненість)         & Будь-яка інформація про повідомлення & Game-based       \\
+        SS (семантична стійкість)     & Будь-яка функція від шифротексту     & Simulation-based \\
+        NM (стійкість до перетворень) & Створення пов'язаних шифротекстів    & Simulation-based \\
+    \end{tblr}
+    \caption{Властивості різних рівнів стійкості}
+    \label{tab:security-properties}
+\end{table}
+
+\section{Ієрархія та імплікації між рівнями стійкості}
+\label{sec:1-hierarchy}
+
+Між різними рівнями стійкості існують певні імплікаційні співвідношення, які формують ієрархію 
+стійкості~\cite{BellareDesaiPointcheval1998, BellareSahai1999}.
+
+\subsection{За типом атаки}
+\label{subsec:1-4}
+
+Для фіксованого рівня стійкості $X \in \{\mathsf{OW}, \mathsf{IND}, \mathsf{SS}, \mathsf{NM}\}$:
+\begin{equation*}
+    \label{eq:attack-implications}
+    X\text{-}\mathsf{CCA2} \Rightarrow X\text{-}\mathsf{CCA1} \Rightarrow X\text{-}\mathsf{CPA}.
+\end{equation*}
+
+Ці імплікації є односторонніми (зворотні імплікації не виконуються в загальному випадку)~\cite{BellareDesaiPointcheval1998}.
+
+\subsection{За рівнем стійкості}
+\label{subsec:1-5}
+
+Для фіксованого типу атаки $\mathsf{CPA} \in \{\mathsf{CPA}, \mathsf{CCA1}, \mathsf{CCA2}\}$~\cite{BellareDesaiPointcheval1998, BellareSahai1999}:
+\begin{equation*}
+    \label{eq:level-implications}
+    \mathsf{NM\text{-}CPA} \Rightarrow \mathsf{IND\text{-}CPA} \Leftrightarrow \mathsf{SS\text{-}CPA} \Rightarrow \mathsf{OW\text{-}CPA}.
+\end{equation*}
+
+\noindent \textcolor{red}{(!)} Важливим фактом є те, що для CCA-2 атак нерозрізненість та стійкість до перетворень є 
+еквівалентними поняттямм~\cite{BellareSahai1999}:
+\begin{equation*}
+    \label{eq:ind-nm-cca2}
+    \mathsf{IND\text{-}CCA2} \Leftrightarrow \mathsf{NM\text{-}CCA2}.
+\end{equation*}
+
+\noindent А для CPA ця еквівалентність не виконується:
+\begin{equation*}
+    \label{eq:nm-cpa-stronger}
+    \mathsf{NM\text{-}CPA} \Rightarrow \mathsf{IND\text{-}CPA}, \quad \text{але} \quad \mathsf{IND\text{-}CPA} \not\Rightarrow \mathsf{NM\text{-}CPA}.
+\end{equation*}
+
+\subsection{Загальна ієрархія}
+\label{subsec:1-6}
+
+Ієрархію рівнів стійкості для асиметричного шифрування можна гарно відобразити рисунком~\ref{fig:hierarchy}.
+
+Стрілками позначимо імплікації. IND-CCA2 $\Leftrightarrow$ NM-CCA2 -- єдина еквівалентність між IND та NM.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.5cm and 2.5cm,
+        box/.style={rectangle, draw, minimum width=2cm, minimum height=0.8cm, align=center},
+        arrow/.style={-{Stealth[length=2mm]}, thick}
+        ]
+        % Верхній рівень (CCA-2)
+        \node[box] (indcca2) {IND-CCA2};
+        \node[box, right=of indcca2] (nmcca2) {NM-CCA2};
+
+        % Середній рівень (CCA-1)
+        \node[box, below=of indcca2] (indcca1) {IND-CCA1};
+        \node[box, right=of indcca1] (nmcca1) {NM-CCA1};
+
+        % Нижній рівень (CPA)
+        \node[box, below=of indcca1] (indcpa) {IND-CPA};
+        \node[box, right=of indcpa] (nmcpa) {NM-CPA};
+
+        % OW рівні (ліворуч)
+        \node[box, left=of indcca2] (owcca2) {OW-CCA2};
+        \node[box, left=of indcca1] (owcca1) {OW-CCA1};
+        \node[box, left=of indcpa] (owcpa) {OW-CPA};
+
+        % Еквівалентність IND-CCA2 та NM-CCA2
+        \draw[arrow, <->, line width = 1.2pt] (indcca2) -- (nmcca2);
+
+        % Вертикальні імплікації для IND
+        \draw[arrow] (indcca2) -- (indcca1);
+        \draw[arrow] (indcca1) -- (indcpa);
+
+        % Вертикальні імплікації для NM
+        \draw[arrow] (nmcca2) -- (nmcca1);
+        \draw[arrow] (nmcca1) -- (nmcpa);
+
+        % Вертикальні імплікації для OW
+        \draw[arrow] (owcca2) -- (owcca1);
+        \draw[arrow] (owcca1) -- (owcpa);
+
+        % Горизонтальні імплікації IND -> OW
+        \draw[arrow] (indcca2) -- (owcca2);
+        \draw[arrow] (indcca1) -- (owcca1);
+        \draw[arrow] (indcpa) -- (owcpa);
+
+        % NM -> IND (для CCA-1 та CPA)
+        \draw[arrow] (nmcca1) -- (indcca1);
+        \draw[arrow] (nmcpa) -- (indcpa);
+
+    \end{tikzpicture}
+    \caption{Ієрархія рівнів стійкості}
+    \label{fig:hierarchy}
+\end{figure}
+
+Найвищим рівнем стійкості для схем асиметричного шифрування є IND-CCA2 (еквівалентно NM-CCA2). Цей рівень є 
+"золотим стандартом"{} для практичних криптосистем~\cite{BellareSahai1999}.
+
+\section{Приклади криптопримітивів}
+\label{sec:1-examples}
+
+\subsection{Криптопримітиви з доведеною стійкістю}
+\label{subsec:1-7}
+
+\subsubsection*{RSA-OAEP (IND-CCA2)}
+
+RSA-OAEP (Optimal Asymmetric Encryption Padding) є стандартизованою схемою шифрування з відкритим ключем~\cite{BellareRogaway1994}. 
+Схема використовує RSA-функцію з використанням оптимального падінгу, що базується на двох різних геш-функціях. 
+Алгоритм шифрування RSA-OAEP є наступним:
+
+\begin{algorithm}[htbp]
+    \caption{RSA-OAEP шифрування}
+    \label{alg:rsa-oaep}
+    \begin{algorithmic}[1]
+        \Require Повідомлення $m$, відкритий ключ $(n, e)$, геш-функції $G, H$
+        \Ensure Шифротекст $c$
+        \State $r \xleftarrow{p} \{0,1\}^{k_0}$ \Comment{Випадкове значення}
+        \State $s \leftarrow (m \| 0^{k_1}) \oplus G(r)$
+        \State $t \leftarrow r \oplus H(s)$
+        \State $w \leftarrow s \| t$
+        \State $c \leftarrow w^e \Mod n$
+        \State \Return $c$
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{claim}[Стійкість RSA-OAEP~\cite{FujisakiOkamotoPoincheval2004}]
+    ~\par RSA-OAEP є IND-CCA2 стійкою в моделі випадкового оракула за припущення складності RSA-задачі.
+\end{claim}
+
+\subsubsection*{Cramer-Shoup (IND-CCA2 без ROM)}
+
+Схема Крамера-Шоупа є першою практичною схемою шифрування з відкритим ключем, для якої доведена IND-CCA2 стійкість 
+у стандартній моделі (без випадкового оракула)~\cite{CramerShoup1998}.
+
+\begin{claim}[Стійкість Cramer--Shoup~\cite{CramerShoup1998}]
+    ~\par Схема Cramer--Shoup є IND-CCA2 стійкою за припущення DDH (Decisional Diffie--Hellman assumption).
+\end{claim}
+
+\subsubsection*{ML-KEM (a.k.a Kyber)}
+
+ML-KEM (Module-Lattice-based Key Encapsulation Mechanism), раніше відомий як CRYSTALS-Kyber, є стандартизованим 
+постквантовим KEM~\cite{NIST-FIPS-203}. Він був обраний NIST (National Institute of Standards and Technology) як 
+стандарт для постквантової криптографії.
+
+\begin{claim}[Стійкість ML-KEM~\cite{Kyber2021}]
+    ~\par ML-KEM є IND-CCA2 стійким за припущення складності задачі MLWE (Module Learning with Errors).
+\end{claim}
+
+\subsection{Криптопримітиви, що не задовольняють певним рівням стійкості}
+\label{subsec:1-8}
+
+\subsubsection*{Textbook RSA}
+
+"Підручникова"{} схема RSA (Rivest-Shamir-Adleman without padding) не задовольняє навіть найслабшому рівню 
+нерозрізненості IND-CPA~\cite{KatzLindell2020}.
+
+\begin{proof}
+    ~\par Нехай $(\pk, \sk) = ((n, e), d)$ -- ключова пара RSA. Розглянемо супротивника $\mathcal{A}$, який:
+    \begin{enumerate}[noitemsep]
+        \item Вибирає повідомлення $m_0$, $m_1$;
+        \item Отримує challenge-шифротекст $c^* = m_b^e \Mod n$;
+        \item Обчислює $c_0 = m_0^e \Mod n$;
+        \item Якщо $c^* = c_0$, виводить $b' = 0$, інакше $b' = 1$.
+    \end{enumerate}
+    Оскільки RSA є детермінованим алгоритмом, то зловмисник $\mathcal{A}$ вгадує правильно з ймовірністю 
+    $\Adv^{\mathsf{IND-CPA}}_{\mathsf{RSA}, \mathcal{A}} = 1/2$.
+    Окрім цього, Textbook RSA має властивість \emph{мультиплікативності}, що робить її вразливою до атак на 
+    перетворення (NM-CPA)~\cite{KatzLindell2020}.
+    \begin{equation*}
+        \label{eq:rsa-multiplicative}
+        \Enc(m_1) \cdot \Enc(m_2) = m_1^e \cdot m_2^e = (m_1 \cdot m_2)^e = \Enc(m_1 \cdot m_2) \Mod{n},
+    \end{equation*}
+\end{proof}
+
+\subsubsection*{ElGamal}
+
+Схема ElGamal є прикладом криптосистеми, яка задовольняє IND-CPA, але не задовольняє IND-CCA1~\cite{ElGamal1985}.
+
+\begin{claim}[Стійкість ElGamal~\cite{TsiounisYung1998}]
+    Схема ElGamal є IND-CPA стійкою за припущення DDH, але не є IND-CCA2 стійкою (і, як наслідок, не є 
+    IND-CCA1 стійкою).
+\end{claim}
+
+\begin{proof}
+    Нехай $\pk = (G, g, h = g^x)$. Супротивник $\mathcal{A}$ діє наступним чином:
+    \begin{enumerate}[noitemsep]
+        \item Вибирає два повідомлення $m_0, m_1 \in G$;
+        \item Отримує challenge-шифротекст $c^* = (c_1, c_2) = (g^r, m_b \cdot h^r)$;
+        \item Формує модифікований шифротекст $c' = (c_1, c_2 \cdot g) = (g^r, m_b \cdot h^r \cdot g)$;
+        \item Запитує $\Dec(c')$ у фазі після отримання $c^*$ (це дозволено в CCA-2, оскільки $c' \neq c^*$);
+        \item Отримує $m' = m_b \cdot g$ та обчислює $m_b = m' \cdot g^{-1}$;
+        \item Виводить $b' = 0$, якщо $m_b = m_0$, інакше $b' = 1$.
+    \end{enumerate}
+    Супротивник вгадує правильно з ймовірністю $\Adv^{\mathsf{IND-CCA2}} = 1/2$.
+\end{proof}
+
+Ця вразливість пов'язана з malleability. Якщо $(c_1, c_2) = (g^r, m \cdot h^r)$ є шифротекстом для $m$, то для
+будь-якого відомого $\delta \in G$:
+\begin{equation}
+    \label{eq:elgamal-malleability}
+    (c_1, c_2 \cdot \delta) = (g^r, m \cdot \delta \cdot h^r) = \Enc(m \cdot \delta),
+\end{equation}
+тобто можна отримати валідний шифротекст для $m \cdot \delta$ без знання $m$. Ця властивість є наслідком 
+мультиплікативності алгоритму ElGamal:
+\begin{equation}
+    \label{eq:elgamal-homomorphic}
+    \Enc(m_1) \cdot \Enc(m_2) = (g^{r_1+r_2}, m_1 \cdot m_2 \cdot h^{r_1+r_2}) = \Enc(m_1 \cdot m_2).
+\end{equation}
+
+\subsection{Порівняльна таблиця перелічених алгоритмів}
+\label{subsec:1-9}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Порівняння рівнів стійкості криптопримітивів}
+    \label{tab:primitives-comparison}
+    \begin{tblr}{
+            colspec = {X[1.7,l] X[c] X[c] X[c] X[c] X[c] X[c]},
+            row{1} = {font=\bfseries},
+            hlines,
+            vlines,
+        }
+        Крипто\-примітив & OW-CPA & IND-CPA & IND-CCA1     & IND-CCA2     & NM-CPA & NM-CCA2     \\
+        RSA-OAEP       & Так    & Так     & Так          & Так***       & Так    & Так***      \\
+        Cramer--Shoup  & Так    & Так     & Так          & Так**        & Так    & Так**       \\
+        ML-KEM (Kyber) & Так    & Так     & Так          & Так$^\star$  & Так    & Так$^\star$ \\
+        Textbook RSA   & Так*   & Ні      & Ні           & Ні           & Ні     & Ні          \\
+        ElGamal        & Так    & Так**   & Ні$^\dagger$ & Ні           & Ні     & Ні          \\
+    \end{tblr}
+    \begin{flushleft}
+        \small
+        * --- за припущення складності RSA-задачі; ** --- за припущення DDH; *** --- у моделі випадкового оракула; $\star$ -- за припущення Module-LWE.\\
+        $^\dagger$ --- для ElGamal доведено нестійкість до CCA-2; нестійкість до CCA-1 не має явної простої атаки, але й доказу стійкості немає.
+    \end{flushleft}
+\end{table}
+
+Можна підбити коротенький підсумок:
+\begin{enumerate}[noitemsep]
+    \item Ієрархія рівнів стійкості: IND-CCA2 (еквівалентно NM-CCA2) є найвищим рівнем стійкості для 
+        схем асиметричного шифрування та механізмів інкапсуляції ключів.
+    \item Нерозрізненість та семантична стійкість еквівалентні для всіх розглянутих моделей атак (CPA, CCA-1, CCA-2).
+    \item Для CCA-2 атак IND та NM еквівалентні, але для CPA атак NM є строго сильнішою вимогою.
+    \item Сучасні криптосистеми (RSA-OAEP, Cramer--Shoup, ML-KEM) розробляються з метою досягнення IND-CCA2 
+        стійкості так званого "золотого стандарту"{} безпеки.
+    \item Приклад Textbook RSA демонструє критичну важливість використання падінгу як такового для досягнення 
+        навіть найбазовіших рівнів стійкості.
+\end{enumerate}

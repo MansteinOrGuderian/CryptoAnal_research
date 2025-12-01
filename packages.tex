@@ -13,12 +13,14 @@
     right = 50pt,
     left = 50pt,
     footskip = 15pt,
-    %showframe
+    showframe
 ]{geometry}
 \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{graphicx}
-\usepackage[ruled]{algorithm2e}
+%\usepackage[ruled]{algorithm2e}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage[unicode,
 bookmarks = true,
 ]{hyperref} % edited
@@ -31,13 +33,13 @@ bookmarks = true,
     anchorcolor = black,
     urlcolor = cyan,
 }
-\usepackage{biblatex}
 \usepackage{csquotes}
 \usepackage{mathtools} % {amsmath} already included here
 \usepackage{amssymb}
 \usepackage{enumitem} % added
 \usepackage{nicefrac} % added
 \usepackage{tabularray} % added
+\UseTblrLibrary{booktabs}
 \usepackage[x11names]{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{patterns.meta} % added
@@ -46,6 +48,7 @@ bookmarks = true,
 \usetikzlibrary{calc} % added
 \usetikzlibrary{shapes.geometric} % added
 \usetikzlibrary{intersections}  % added
+\usetikzlibrary{positioning}  % added
 \usepackage{pgfplots} % added
 \usepackage{pgfplotstable} % added
 \pgfplotsset{compat=newest} % added
@@ -59,3 +62,4 @@ bookmarks = true,
 \usepackage{multirow} % added
 \usepackage{fancyhdr} % added
 \usepackage[absolute,overlay]{textpos} % added
+\usepackage[backend=biber,style=numeric,sorting=none,autolang=other]{biblatex}
